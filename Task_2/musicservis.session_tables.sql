@@ -45,4 +45,10 @@ CREATE TABLE IF NOT EXISTS collection_track(
     CONSTRAINT collection_track_pk PRIMARY KEY (collection_id, track_id)
 );
 
+-- Внесение дополнительных ограничений CHECK
+--1) год выпуска альбомов и сборников  - не ранее 1999
+ALTER TABLE album ADD CONSTRAINT chk_year_of_release CHECK (year_of_release >= 1980);
+ALTER TABLE collection_of_songs ADD CONSTRAINT chk_year_of_release CHECK (year_of_release >= 1980);
 
+--2) продолжительность трека - не менее 100 секунд
+ALTER TABLE track ADD CONSTRAINT chk_duration CHECK (duration >= 100);
