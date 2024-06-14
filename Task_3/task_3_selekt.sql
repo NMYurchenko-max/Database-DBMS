@@ -68,6 +68,9 @@ GROUP BY a.album_name;
 
 --4. Количество исполнителей, которые не выпустили альбомы в 2019-2020 годах
 --Выбираем количество исполнителей 
+/* отвечает на вопрос “кто выпустил хоть что-то, кроме того, что выпустил в 2020”, 
+а не на вопрос: “кто не выпустил альбомы в 2020 году” */
+
 SELECT COUNT(DISTINCT alb_art.artist_id)
 FROM album AS alb
 JOIN artist_album AS alb_art ON alb.id = alb_art.album_id
@@ -158,4 +161,61 @@ WHERE subquery.tracks_count = (
         -- Группируем треки по album_id, чтобы получить количество треков для каждого альбома
         GROUP BY album_id
     )
+);
+
+-- Доработка заданий
+--2.1. Название и продолжительность самого длинного трека - найти с использованием
+-- вложенного запроса и функции MAX
+SELECT track_name, duration
+FROM track
+WHERE duration = (
+    SELECT MAX(duration)
+    FROM track
+);
+
+--3.4. найти количество исполнителей, которые не выпустили ни одного альбома 
+--в период с 2019 по 2020 годы. Для этого мы должны изменить подход и сначала найти 
+--всех исполнителей, которые выпустили альбомы в этот период,
+--а затем исключить их из общего списка исполнителей
+SELECT COUNT(DISTINCT art.id)   -- считаем исполнителей вне списка подзапроса 
+FROM artist AS art
+WHERE art.id NOT IN (
+    SELECT DISTINCT alb_art.artist_id
+    FROM album AS alb
+    JOIN artist_album AS alb_art ON alb.id = alb_art.album_id
+    WHERE alb.year_of_release BETWEEN 2019 AND 2020
+);
+--подзапрос находит уникальные идентификаторы исполнителей, 
+--которые выпустили альбомы в 2019-2020 годах
+--Where исключает их из основного запроса
+
+--4.4. Названия альбомов, содержащих наименьшее количество треков
+-- упростить код до 1 вложения по рекомендации  эксперта
+/*
+Выбираем название альбома и подсчитываем количество треков для каждого альбома track_count.
+Присоединяем JOIN таблицу track к таблице album по идентификатору альбома
+Группируем GROUP BY результаты по названию альбома, 
+чтобы получить количество треков для каждого альбома.
+Фильтруем группы, оставляя только те, количество треков 
+в которых равно минимальному количеству треков среди всех альбомов HAVING COUNT 
+= подзапрос:
+Подсчитываем количество треков для каждого альбома trac_count
+Присоединяем таблицу track к таблице album по идентификатору альбома JOIN track ON album_id
+=track.album_id
+Группируем результаты по идентификатору альбома, 
+чтобы получить количество треков для каждого альбома GROUP BY album.id
+Сортируем группы по количеству треков в порядке возрастания ORDER BY COUNT(track.track_name)
+Оставляем только одну группу с минимальным количеством треков LIMIT 1 
+*/
+SELECT album.album_name, COUNT(track.track_name) AS track_count
+FROM album 
+JOIN track ON album.id = track.album_id
+GROUP BY album.album_name
+HAVING COUNT(track.track_name) = (
+    SELECT COUNT(track.track_name)
+    FROM album
+    JOIN track ON album.id = track.album_id
+    GROUP BY album.id
+    ORDER BY COUNT(track.track_name)
+    LIMIT 1
 );
